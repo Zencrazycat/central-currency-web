@@ -4,9 +4,8 @@ plugins:
   - serverless-pseudo-parameters
   - serverless-python-requirements
   - serverless-stage-manager
-#  - serverless-step-functions
 custom:
-  defaultStage: dev
+  defaultStage: "dev"
   stages:
     - test
     - dev
@@ -15,6 +14,8 @@ custom:
     dockerizePip: non-linux
     slim: true
 
+  CURRENCY_RATES_TABLE: ${self:provider.stage}-currency-rates
+
 provider:
   name: aws
   runtime: python3.8
@@ -22,33 +23,24 @@ provider:
   stage: ${opt:stage, ${self:custom.defaultStage}}
   versionFunctions: false
 
-#  iamRoleStatements:
-#    - Effect: "Allow"
-#      Action:
-#        - "states:*"
-#      Resource:
-#        - "*"
-#    - Effect: "Allow"
-#      Action:
-#        - "ssm:GetParameter"
-#      Resource:
-#        - "*"
-#    - Effect: "Allow"
-#      Action:
-#        - "s3:*"
-#      Resource:
-#        - "*"
-#    - Effect: "Allow"
-#      Action:
-#        - "dynamodb:*"
-#      Resource:
-#        - "*"
-#    - Effect: "Allow"
-#      Action:
-#        - "logs:*"
-#      Resource: "*"
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "states:*"
+      Resource:
+        - "*"
+    - Effect: "Allow"
+      Action:
+        - "dynamodb:*"
+      Resource:
+        - "*"
+    - Effect: "Allow"
+      Action:
+        - "logs:*"
+      Resource: "*"
 
-#  environment:
+  environment:
+    CURRENCY_RATES_TABLE: ${self:custom.CURRENCY_RATES_TABLE}
 
 
 package:
@@ -61,5 +53,27 @@ package:
     - node_modules/**
 
 
-#functions:
+functions:
+  parsePrivat:
+    handler: src.handlers.parsers.parse_privat
+    events:
+      - schedule:
+          rate: rate(5 minutes)
+          enabled: false
 
+
+resources:
+  Resources:
+    currencyRatesTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: rateId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: rateId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:custom.CURRENCY_RATES_TABLE}

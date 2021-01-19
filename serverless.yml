@@ -70,6 +70,14 @@ functions:
       - schedule:
           rate: rate(30 minutes)
           enabled: true
+  parseOtpbank:
+    handler: src.handlers.parsers.parse_otpbank
+    memorySize: 128
+    events:
+      - schedule:
+          rate: rate(30 minutes)
+          enabled: true
+
 
 resources:
   Resources:

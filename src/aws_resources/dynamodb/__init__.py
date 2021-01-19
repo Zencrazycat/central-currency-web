@@ -1,28 +1,48 @@
+import os
+
 import boto3
+from boto3.dynamodb.conditions import Key
+
 
 dynamodb = boto3.resource("dynamodb")
 client = boto3.client("dynamodb")
+currency_rates_table = dynamodb.Table(os.getenv("CURRENCY_RATES_TABLE_NAME"))
+
+TYPE_SOURCE = "SOURCE"
+TYPE_RATE = "RATE"
+TABLE_GSI = "gsi1"
 
 
-def save_rate(table_name, rate_id, currency, buy, sale, source):
-    table = dynamodb.Table(table_name)
+def generate_key(type, name):
+    return f"{type}#{name}"
+
+
+def save_rate(rate_id, currency, buy, sale, source, created):
+    pk = generate_key(TYPE_SOURCE, source)
+    sk = generate_key(TYPE_RATE, rate_id)
     data = {
-        "rateId": rate_id,
+        "pk": pk,
+        "sk": sk,
+        "type": TYPE_RATE,
         "currency": currency,
         "buy": buy,
         "sale": sale,
-        "source": source
+        "created": created
     }
-    print(f"Table: {table}")
+    print(f"Table: {currency_rates_table}")
     print(f"Data: {data}")
 
-    response = table.put_item(Item=data)
+    response = currency_rates_table.put_item(Item=data)
     return response
 
 
-def get_rate(table_name, rate_id):
-    table = dynamodb.Table(table_name)
-    response = table.get_item(Key={"rateId": rate_id})
-    print(response)
-    item = response["Item"]
-    return item
+def get_rates():
+    response = currency_rates_table.query(IndexName=TABLE_GSI, KeyConditionExpression=Key("type").eq(TYPE_RATE))
+    items = response["Items"]
+    return items
+
+
+def get_sources():
+    response = currency_rates_table.query(IndexName=TABLE_GSI, KeyConditionExpression=Key("type").eq(TYPE_SOURCE))
+    items = response["Items"]
+    return items

@@ -1,4 +1,4 @@
-service: central-currency-web
+service: rates-aggregator
 
 plugins:
   - serverless-pseudo-parameters
@@ -14,21 +14,16 @@ custom:
     dockerizePip: non-linux
     slim: true
 
-  CURRENCY_RATES_TABLE: ${self:provider.stage}-currency-rates
+  CURRENCY_RATES_TABLE_NAME: ${self:provider.stage}-currency-rates
 
 provider:
   name: aws
   runtime: python3.8
-  region: us-east-1
+  region: ${opt:region, 'us-east-1'}
   stage: ${opt:stage, ${self:custom.defaultStage}}
   versionFunctions: false
 
   iamRoleStatements:
-    - Effect: "Allow"
-      Action:
-        - "states:*"
-      Resource:
-        - "*"
     - Effect: "Allow"
       Action:
         - "dynamodb:*"
@@ -40,7 +35,7 @@ provider:
       Resource: "*"
 
   environment:
-    CURRENCY_RATES_TABLE: ${self:custom.CURRENCY_RATES_TABLE}
+    CURRENCY_RATES_TABLE: ${self:custom.CURRENCY_RATES_TABLE_NAME}
 
 
 package:
@@ -59,21 +54,35 @@ functions:
     events:
       - schedule:
           rate: rate(5 minutes)
-          enabled: false
-
+          enabled: true
 
 resources:
   Resources:
     currencyRatesTable:
-      Type: "AWS::DynamoDB::Table"
+      Type: AWS::DynamoDB::Table
       Properties:
         AttributeDefinitions:
-          - AttributeName: rateId
+          - AttributeName: pk
+            AttributeType: S
+          - AttributeName: sk
+            AttributeType: S
+          - AttributeName: type
+            AttributeType: S
+          - AttributeName: currency
             AttributeType: S
         KeySchema:
-          - AttributeName: rateId
+          - AttributeName: pk
             KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 1
-          WriteCapacityUnits: 1
-        TableName: ${self:custom.CURRENCY_RATES_TABLE}
+          - AttributeName: sk
+            KeyType: RANGE
+          BillingMode: PAY_PER_REQUEST
+          GlobalSecondaryIndexes:
+            - IndexName: gsi1
+              KeySchema:
+                - AttributeName: type
+                  KeyType: HASH
+                - AttributeName: currency
+                  KeyType: RANGE
+              Projection:
+                ProjectionType: ALL
+        TableName: ${self:custom.CURRENCY_RATES_TABLE_NAME}

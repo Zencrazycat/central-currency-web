@@ -1,14 +1,10 @@
 from datetime import datetime
 from decimal import Decimal
-from os import getenv
 
 import requests
 
-from src.aws_resources.dynamodb import save_rate, get_rate
+from src.aws_resources.dynamodb import save_rate
 from src.handlers.utils import generate_id
-
-
-CURRENCY_RATES_TABLE = getenv("CURRENCY_RATES_TABLE")
 
 
 def parse_privat(event, context):
@@ -18,7 +14,6 @@ def parse_privat(event, context):
     for rate in rates:
         if rate["base_ccy"] == "UAH":
             rate_kwargs = {
-                "table_name": CURRENCY_RATES_TABLE,
                 "rate_id": generate_id(),
                 "currency": rate.get("ccy"),
                 "buy": Decimal(rate["buy"][:6]),

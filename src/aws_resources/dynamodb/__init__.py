@@ -29,9 +29,6 @@ def save_rate(rate_id, currency, buy, sale, source, created):
         "sale": sale,
         "created": created
     }
-    print(f"Table: {currency_rates_table}")
-    print(f"Data: {data}")
-
     response = currency_rates_table.put_item(Item=data)
     return response
 

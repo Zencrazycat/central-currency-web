@@ -35,7 +35,7 @@ provider:
       Resource: "*"
 
   environment:
-    CURRENCY_RATES_TABLE: ${self:custom.CURRENCY_RATES_TABLE_NAME}
+    CURRENCY_RATES_TABLE_NAME: ${self:custom.CURRENCY_RATES_TABLE_NAME}
 
 
 package:
@@ -49,11 +49,26 @@ package:
 
 
 functions:
-  parsePrivat:
-    handler: src.handlers.parsers.parse_privat
+  parsePrivatbank:
+    handler: src.handlers.parsers.parse_privatbank
+    memorySize: 128
     events:
       - schedule:
-          rate: rate(5 minutes)
+          rate: rate(30 minutes)
+          enabled: true
+  parseMonobank:
+    handler: src.handlers.parsers.parse_monobank
+    memorySize: 128
+    events:
+      - schedule:
+          rate: rate(30 minutes)
+          enabled: true
+  parseVkurse:
+    handler: src.handlers.parsers.parse_vkurse
+    memorySize: 128
+    events:
+      - schedule:
+          rate: rate(30 minutes)
           enabled: true
 
 resources:
